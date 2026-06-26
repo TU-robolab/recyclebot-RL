@@ -190,3 +190,15 @@ $$
 $$
 
 The LP planner assigns item/robot/bin triples subject to item uniqueness, robot capacity, reachability, and empty/full bin availability. Wrong-bin quality loss is handled through the expected gain formula using the no-credit indicator and \(C^{\mathrm{contamination}}_{M,b}\), rather than a separate bin-quality constraint.
+
+
+---
+
+## License
+
+This repository is distributed under the MIT License unless otherwise stated.
+
+---
+
+Maintained by Elvis Borges @Triku Studio
+© 2026 Triku Studio — All Rights Reserved.**
