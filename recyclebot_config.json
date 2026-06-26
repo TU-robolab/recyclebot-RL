@@ -1,0 +1,245 @@
+{
+  "description": "Simplified RecycleBot RL demo configuration using tau-notation, per-item value, seven material classes, four shapes, three item conditions, U1 lighting, and conveyor speed.",
+  "materials_M": [
+    "PET",
+    "HDPE",
+    "cardboard",
+    "metal",
+    "glass",
+    "organic",
+    "hazard"
+  ],
+  "material_distribution": {
+    "PET": 0.28,
+    "HDPE": 0.16,
+    "cardboard": 0.18,
+    "metal": 0.1,
+    "glass": 0.08,
+    "organic": 0.18,
+    "hazard": 0.02
+  },
+  "shapes_F": [
+    "bottle",
+    "tray",
+    "can",
+    "box"
+  ],
+  "conditions_K": [
+    "clean",
+    "crumpled",
+    "occluded"
+  ],
+  "bins_B": [
+    "PET",
+    "HDPE",
+    "cardboard",
+    "metal",
+    "glass",
+    "organic",
+    "hazard"
+  ],
+  "material_to_bin_B_of_M": {
+    "PET": "PET",
+    "HDPE": "HDPE",
+    "cardboard": "cardboard",
+    "metal": "metal",
+    "glass": "glass",
+    "organic": "organic",
+    "hazard": "hazard"
+  },
+  "material_item_value": {
+    "PET": 1.2,
+    "HDPE": 1.45,
+    "cardboard": 0.55,
+    "metal": 2.1,
+    "glass": 0.45,
+    "organic": 0.12,
+    "hazard": 0.0
+  },
+  "contamination_penalty": {
+    "PET": {
+      "PET": 0.0,
+      "HDPE": 0.55,
+      "cardboard": 0.75,
+      "metal": 0.7,
+      "glass": 0.85,
+      "organic": 0.5,
+      "hazard": 0.0
+    },
+    "HDPE": {
+      "PET": 0.55,
+      "HDPE": 0.0,
+      "cardboard": 0.7,
+      "metal": 0.7,
+      "glass": 0.85,
+      "organic": 0.5,
+      "hazard": 0.0
+    },
+    "cardboard": {
+      "PET": 0.7,
+      "HDPE": 0.7,
+      "cardboard": 0.0,
+      "metal": 0.65,
+      "glass": 0.75,
+      "organic": 0.4,
+      "hazard": 0.0
+    },
+    "metal": {
+      "PET": 0.75,
+      "HDPE": 0.75,
+      "cardboard": 0.7,
+      "metal": 0.0,
+      "glass": 0.8,
+      "organic": 0.45,
+      "hazard": 0.0
+    },
+    "glass": {
+      "PET": 0.85,
+      "HDPE": 0.85,
+      "cardboard": 0.75,
+      "metal": 0.75,
+      "glass": 0.0,
+      "organic": 0.45,
+      "hazard": 0.0
+    },
+    "organic": {
+      "PET": 1.1,
+      "HDPE": 1.1,
+      "cardboard": 0.95,
+      "metal": 0.9,
+      "glass": 0.9,
+      "organic": 0.0,
+      "hazard": 0.0
+    },
+    "hazard": {
+      "PET": 4.0,
+      "HDPE": 4.0,
+      "cardboard": 3.6,
+      "metal": 3.5,
+      "glass": 3.5,
+      "organic": 2.5,
+      "hazard": 0.0
+    }
+  },
+  "shape_defaults": {
+    "bottle": {
+      "grasp_points_mean": 3,
+      "base_grasp": 0.72,
+      "cycle_time_s": 0.85,
+      "dimensions_m": [
+        0.23,
+        0.075,
+        0.075
+      ]
+    },
+    "tray": {
+      "grasp_points_mean": 4,
+      "base_grasp": 0.66,
+      "cycle_time_s": 0.95,
+      "dimensions_m": [
+        0.22,
+        0.16,
+        0.04
+      ]
+    },
+    "can": {
+      "grasp_points_mean": 2,
+      "base_grasp": 0.78,
+      "cycle_time_s": 0.75,
+      "dimensions_m": [
+        0.12,
+        0.065,
+        0.065
+      ]
+    },
+    "box": {
+      "grasp_points_mean": 4,
+      "base_grasp": 0.62,
+      "cycle_time_s": 1.05,
+      "dimensions_m": [
+        0.3,
+        0.22,
+        0.14
+      ]
+    }
+  },
+  "condition_effects": {
+    "clean": {
+      "detection_factor": 1.0,
+      "grasp_factor": 1.0,
+      "risk": 0.0
+    },
+    "crumpled": {
+      "detection_factor": 0.8,
+      "grasp_factor": 0.72,
+      "risk": 0.07
+    },
+    "occluded": {
+      "detection_factor": 0.6,
+      "grasp_factor": 0.58,
+      "risk": 0.16
+    }
+  },
+  "environment_state_E": {
+    "U1_lighting": {
+      "standard": {
+        "probability": 0.72,
+        "detection_factor": 1.0
+      },
+      "dim": {
+        "probability": 0.2,
+        "detection_factor": 0.84
+      },
+      "poor": {
+        "probability": 0.08,
+        "detection_factor": 0.62
+      }
+    }
+  },
+  "temporal_dynamics": {
+    "decision_window_s": 1.6,
+    "V_conveyor_speed_levels_mps": [
+      0.25,
+      0.45,
+      0.65,
+      0.85
+    ],
+    "O_visible_objects_min": 4,
+    "O_visible_objects_max": 12,
+    "workspace_length_m": 1.8,
+    "workspace_width_m": 1.0
+  },
+  "robots_R": {
+    "R1": {
+      "x_min": 0.0,
+      "x_max": 1.1,
+      "y_min": -0.5,
+      "y_max": 0.05,
+      "cycle_time_factor": 1.0,
+      "grasp_skill": 1.0
+    },
+    "R2": {
+      "x_min": 0.55,
+      "x_max": 1.8,
+      "y_min": -0.05,
+      "y_max": 0.5,
+      "cycle_time_factor": 1.05,
+      "grasp_skill": 0.96
+    }
+  },
+  "bin_state_model": {
+    "prob_full": 0.06
+  },
+  "learning": {
+    "beta_kl": 0.65,
+    "softmax_temperature": 0.38,
+    "model_learning_rate": 0.035,
+    "l2_penalty": 0.0005,
+    "human_epistemic_variance_threshold": 0.01,
+    "human_value_threshold": 0.35,
+    "human_intervention_cost": 0.12
+  },
+  "constraints": {
+    "human_attention_budget_per_window": 1.0
+  }
+}

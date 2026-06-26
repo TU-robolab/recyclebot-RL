@@ -1,0 +1,34 @@
+{
+  "greedy": {
+    "final_cumulative_reward": 636.6501500000007,
+    "final_value_per_min": 23.874380625000025,
+    "mean_reward_last_100": 0.585812,
+    "mean_correct_bin_rate_last_100": 0.58,
+    "interventions_total": 0,
+    "mean_epistemic_var_last_100": 0.01570173365834943
+  },
+  "human": {
+    "final_cumulative_reward": 544.8068500000018,
+    "final_value_per_min": 20.430256875000065,
+    "mean_reward_last_100": 0.4912545,
+    "mean_correct_bin_rate_last_100": 0.54,
+    "interventions_total": 0,
+    "mean_epistemic_var_last_100": 0.0184025351261116
+  },
+  "kl_human_ghost": {
+    "final_cumulative_reward": 590.7337500000016,
+    "final_value_per_min": 22.15251562500006,
+    "mean_reward_last_100": 0.4928925000000001,
+    "mean_correct_bin_rate_last_100": 0.56,
+    "interventions_total": 316,
+    "mean_epistemic_var_last_100": 0.013004177665112675
+  },
+  "random": {
+    "final_cumulative_reward": -236.73464999999925,
+    "final_value_per_min": -8.87754937499997,
+    "mean_reward_last_100": -0.26699499999999987,
+    "mean_correct_bin_rate_last_100": 0.08,
+    "interventions_total": 0,
+    "mean_epistemic_var_last_100": 0.006101363802636552
+  }
+}

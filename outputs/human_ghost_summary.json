@@ -1,0 +1,30 @@
+{
+  "KL_calibrated_Q": {
+    "total_reward": 347.13467403025237,
+    "final_value_per_min": 32.543875690336165,
+    "final_correct_bin_rate": 0.9874055415617129,
+    "correction_proxy_count": 1,
+    "sorted_count": 397
+  },
+  "KL_bad_Q": {
+    "total_reward": 346.39041845724256,
+    "final_value_per_min": 32.47410173036649,
+    "final_correct_bin_rate": 0.9874055415617129,
+    "correction_proxy_count": 6,
+    "sorted_count": 397
+  },
+  "imitation_muH": {
+    "total_reward": 338.48219620588543,
+    "final_value_per_min": 31.73270589430176,
+    "final_correct_bin_rate": 0.9874055415617129,
+    "correction_proxy_count": 0,
+    "sorted_count": 397
+  },
+  "greedy_bad_Q": {
+    "total_reward": 331.1108843404465,
+    "final_value_per_min": 31.04164540691686,
+    "final_correct_bin_rate": 0.9496221662468514,
+    "correction_proxy_count": 61,
+    "sorted_count": 397
+  }
+}
