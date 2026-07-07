@@ -26,7 +26,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from recyclebot_core import (
-    LinearValueEnsemble,
+    BayesianLinearValueModel,
     RecycleBotSimulator,
     choose_action,
     entropy,
@@ -36,14 +36,18 @@ from recyclebot_core import (
 
 def run_policy(policy: str, config: dict, steps: int, seed: int) -> pd.DataFrame:
     sim = RecycleBotSimulator(config=config, seed=seed)
-    ensemble = LinearValueEnsemble(feature_dim=sim.feature_dim, n_models=5, seed=seed + 99)
+    learning = config["learning"]
+    model = BayesianLinearValueModel(
+        feature_dim=sim.feature_dim,
+        prior_var=float(learning.get("blr_prior_var", 1.0)),
+        noise_var=float(learning.get("blr_noise_var", 0.25)),
+        seed=seed + 99,
+    )
     action_rng = np.random.default_rng(seed + 202)
     reward_rng = np.random.default_rng(seed + 303)
+    thompson_rng = np.random.default_rng(seed + 404)
 
-    learning = config["learning"]
     beta = float(learning["beta_kl"])
-    lr = float(learning["model_learning_rate"])
-    l2 = float(learning["l2_penalty"])
     q_var_threshold = float(learning["human_epistemic_variance_threshold"])
     value_threshold = float(learning["human_value_threshold"])
     human_cost = float(learning["human_intervention_cost"])
@@ -63,19 +67,28 @@ def run_policy(policy: str, config: dict, steps: int, seed: int) -> pd.DataFrame
             continue
 
         features = np.vstack([sim.action_features(action, env) for action in actions])
-        q_mean, q_var = ensemble.predict_mean_var(features)
+        q_mean, q_var = model.predict_mean_var(features)
         human_prior = sim.human_ghost_policy(actions, env)
-        selected_idx, policy_probs = choose_action(
-            action_rng,
-            actions,
-            q_mean,
-            human_prior,
-            mode=policy,
-            beta=beta,
-            epsilon=0.04,
-        )
 
-        top_expected_gain = max(sim.expected_action_gain(action, env) for action in actions)
+        if policy == "thompson":
+            # Thompson sampling: act greedily on one posterior function draw.
+            q_sample = model.sample_q(features, rng=thompson_rng)
+            selected_idx, policy_probs = choose_action(
+                action_rng, actions, q_sample, human_prior, mode="greedy", beta=beta, epsilon=0.0,
+            )
+        else:
+            selected_idx, policy_probs = choose_action(
+                action_rng,
+                actions,
+                q_mean,
+                human_prior,
+                mode=policy,
+                beta=beta,
+                epsilon=0.04,
+            )
+
+        # Value at stake is the model's own estimate, not the simulator oracle.
+        value_at_stake = float(np.max(q_mean))
         max_epistemic_var = float(np.max(q_var))
         intervention = False
         chosen_by_human = False
@@ -83,7 +96,7 @@ def run_policy(policy: str, config: dict, steps: int, seed: int) -> pd.DataFrame
         # Human query rule: ask only when the model is uncertain in a learnable
         # way (epistemic variance) and the value at stake is large enough.
         if policy in {"kl", "kl_human_ghost"}:
-            if max_epistemic_var > q_var_threshold and top_expected_gain > value_threshold:
+            if max_epistemic_var > q_var_threshold and value_at_stake > value_threshold:
                 selected_idx = int(np.argmax(human_prior))
                 intervention = True
                 chosen_by_human = True
@@ -92,7 +105,10 @@ def run_policy(policy: str, config: dict, steps: int, seed: int) -> pd.DataFrame
         action = actions[selected_idx]
         rr = sim.sample_reward(action, rng=reward_rng)
         reward = rr.reward - (human_cost if intervention else 0.0)
-        ensemble.update(features[selected_idx], reward, lr=lr, l2=l2)
+        model.update(features[selected_idx], reward)
+        # Behavior probability of the *executed* decision rule: the override is
+        # deterministic, so mu_t = 1 on intervention steps (required for OPE).
+        behavior_prob = 1.0 if intervention else float(policy_probs[selected_idx])
 
         true_values = np.asarray([sim.expected_true_reward(action_i) for action_i in actions], dtype=float)
         best_true = float(np.max(true_values))
@@ -134,6 +150,7 @@ def run_policy(policy: str, config: dict, steps: int, seed: int) -> pd.DataFrame
                 "elapsed_s": (t + 1) * decision_window_s,
                 "policy": policy,
                 "reward": reward,
+                "reward_env": rr.reward,
                 "cum_reward": cum_reward,
                 "recovered_value_per_min": cum_reward / max(((t + 1) * decision_window_s) / 60.0, 1e-12),
                 "regret": regret,
@@ -143,6 +160,7 @@ def run_policy(policy: str, config: dict, steps: int, seed: int) -> pd.DataFrame
                 "success_place": rr.success_place,
                 "correct_bin": rr.correct_bin,
                 "correct_bin_signal": float(rr.picked and rr.success_pick and rr.success_place and rr.correct_bin),
+                "correct_bin_decision": float((not action.is_null) and target_bin == true_bin),
                 "intervention": intervention,
                 "chosen_by_human": chosen_by_human,
                 "cum_interventions": cum_interventions,
@@ -170,7 +188,7 @@ def run_policy(policy: str, config: dict, steps: int, seed: int) -> pd.DataFrame
                 "q_var_selected": float(q_var[selected_idx]),
                 "human_prior_selected": float(human_prior[selected_idx]),
                 "policy_prob_selected": float(policy_probs[selected_idx]),
-                "behavior_policy_probability_mu_t": float(policy_probs[selected_idx]),
+                "behavior_policy_probability_mu_t": behavior_prob,
                 "best_true_expected_reward": best_true,
                 "selected_true_expected_reward": selected_true,
             }
@@ -230,7 +248,11 @@ def main() -> None:
     parser.add_argument("--steps", type=int, default=1500)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--output-dir", type=str, default=str(Path(__file__).with_name("outputs")))
-    parser.add_argument("--policies", nargs="+", default=["random", "human", "greedy", "kl_human_ghost"])
+    parser.add_argument(
+        "--policies",
+        nargs="+",
+        default=["random", "human", "greedy", "greedy_eps", "thompson", "kl_human_ghost"],
+    )
     args = parser.parse_args()
 
     config = load_config(args.config)

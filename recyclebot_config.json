@@ -54,7 +54,7 @@
     "metal": 2.1,
     "glass": 0.45,
     "organic": 0.12,
-    "hazard": 0.0
+    "hazard": 0.9
   },
   "contamination_penalty": {
     "PET": {
@@ -64,7 +64,7 @@
       "metal": 0.7,
       "glass": 0.85,
       "organic": 0.5,
-      "hazard": 0.0
+      "hazard": 0.4
     },
     "HDPE": {
       "PET": 0.55,
@@ -73,7 +73,7 @@
       "metal": 0.7,
       "glass": 0.85,
       "organic": 0.5,
-      "hazard": 0.0
+      "hazard": 0.45
     },
     "cardboard": {
       "PET": 0.7,
@@ -82,7 +82,7 @@
       "metal": 0.65,
       "glass": 0.75,
       "organic": 0.4,
-      "hazard": 0.0
+      "hazard": 0.3
     },
     "metal": {
       "PET": 0.75,
@@ -91,7 +91,7 @@
       "metal": 0.0,
       "glass": 0.8,
       "organic": 0.45,
-      "hazard": 0.0
+      "hazard": 0.55
     },
     "glass": {
       "PET": 0.85,
@@ -100,7 +100,7 @@
       "metal": 0.75,
       "glass": 0.0,
       "organic": 0.45,
-      "hazard": 0.0
+      "hazard": 0.35
     },
     "organic": {
       "PET": 1.1,
@@ -109,7 +109,7 @@
       "metal": 0.9,
       "glass": 0.9,
       "organic": 0.0,
-      "hazard": 0.0
+      "hazard": 0.15
     },
     "hazard": {
       "PET": 4.0,
@@ -235,11 +235,29 @@
     "softmax_temperature": 0.38,
     "model_learning_rate": 0.035,
     "l2_penalty": 0.0005,
-    "human_epistemic_variance_threshold": 0.01,
+    "human_epistemic_variance_threshold": 0.15,
     "human_value_threshold": 0.35,
-    "human_intervention_cost": 0.12
+    "human_intervention_cost": 0.12,
+    "blr_prior_var": 1.0,
+    "blr_noise_var": 0.25
   },
   "constraints": {
     "human_attention_budget_per_window": 1.0
+  },
+  "human_model": {
+    "description": "Parameterized noisy human labeler: effective skill = skill * skill_by_condition[K]; belief = s*onehot(true) + (1-s)*machine posterior. No oracle bonus terms.",
+    "skill": 0.85,
+    "skill_by_condition": {
+      "clean": 1.0,
+      "crumpled": 0.92,
+      "occluded": 0.75
+    },
+    "softmax_temperature": 0.38,
+    "null_score": -0.2,
+    "w_gain": 1.2,
+    "w_grasp": 0.5,
+    "w_urgency": 0.35,
+    "w_risk": 0.65,
+    "w_cycle": 0.08
   }
 }

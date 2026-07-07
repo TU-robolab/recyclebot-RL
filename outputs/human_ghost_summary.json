@@ -1,30 +1,30 @@
 {
-  "KL_calibrated_Q": {
-    "total_reward": 347.13467403025237,
-    "final_value_per_min": 32.543875690336165,
-    "final_correct_bin_rate": 0.9874055415617129,
-    "correction_proxy_count": 1,
-    "sorted_count": 397
+  "greedy_bad_Q": {
+    "total_reward": 909.9840094560053,
+    "final_value_per_min": 28.437000295500166,
+    "final_correct_bin_rate": 0.9460825610783488,
+    "correction_proxy_count": 333,
+    "sorted_count": 1187
+  },
+  "KL_oracle_noise_Q": {
+    "total_reward": 848.0611265556524,
+    "final_value_per_min": 26.50191020486414,
+    "final_correct_bin_rate": 0.9095519864750634,
+    "correction_proxy_count": 63,
+    "sorted_count": 1183
   },
   "KL_bad_Q": {
-    "total_reward": 346.39041845724256,
-    "final_value_per_min": 32.47410173036649,
-    "final_correct_bin_rate": 0.9874055415617129,
-    "correction_proxy_count": 6,
-    "sorted_count": 397
+    "total_reward": 801.4405117590162,
+    "final_value_per_min": 25.045015992469256,
+    "final_correct_bin_rate": 0.8786857624262847,
+    "correction_proxy_count": 47,
+    "sorted_count": 1187
   },
   "imitation_muH": {
-    "total_reward": 338.48219620588543,
-    "final_value_per_min": 31.73270589430176,
-    "final_correct_bin_rate": 0.9874055415617129,
+    "total_reward": 740.2099047340835,
+    "final_value_per_min": 23.13155952294011,
+    "final_correct_bin_rate": 0.8319256756756757,
     "correction_proxy_count": 0,
-    "sorted_count": 397
-  },
-  "greedy_bad_Q": {
-    "total_reward": 331.1108843404465,
-    "final_value_per_min": 31.04164540691686,
-    "final_correct_bin_rate": 0.9496221662468514,
-    "correction_proxy_count": 61,
-    "sorted_count": 397
+    "sorted_count": 1184
   }
 }

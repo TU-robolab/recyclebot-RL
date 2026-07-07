@@ -35,10 +35,12 @@ There is no separate bin-quality constraint in this simplified version. Quality 
 | `RecycleBot RL.md` | Summary mathematical overview of the algorithms from scratch. |
 | `recyclebot_config.json` | Editable simulator configuration. |
 | `recyclebot_core.py` | Core simulator, value model, policies, and helper functions. |
-| `demo_contextual_bandit.py` | Demo 1: random / human / greedy / KL-human-ghost contextual bandit. |
+| `demo_contextual_bandit.py` | Demo 1: contextual bandit — random / imitation / greedy / greedy-ε / Thompson / KL operator-prior. |
 | `demo_convex_assignment.py` | Demo 2: rolling LP assignment vs greedy baseline. |
 | `demo_human_ghost.py` | Demo 3: human-ghost prior diagnostics. |
 | `demo_live_dashboard.py` | Optional local matplotlib dashboard. |
+| `paper_figures.py` | Multi-seed publication figures (PDF/PNG) and LaTeX summary tables. |
+| `plot_style.py` | Shared publication matplotlib style (Computer Modern, Okabe-Ito colors, CI helpers). |
 | `requirements.txt` | Python dependencies. |
 
 The package intentionally keeps only one mathematical formulation file to avoid version confusion.
@@ -73,9 +75,54 @@ Generated files are written to `outputs/`.
 
 ---
 
+## Publication figures
+
+```bash
+python paper_figures.py --seeds 10
+```
+
+Runs every experiment over independent seeds (in parallel) and writes vector
+figures plus LaTeX tables to `figures/`:
+
+| Output | Content |
+|---|---|
+| `fig1_bandit_learning.pdf` | Learning curves (reward, cumulative regret, correct-bin rate, intervention rate) with 95% CI bands. |
+| `fig2_bandit_convergence.pdf` | Convergence diagnostics: epistemic Q-variance, policy entropy, value-model prediction error. |
+| `fig3_bandit_final.pdf` | Final performance bars with 95% CI error bars and per-seed points. |
+| `fig4_bandit_calibration.pdf` | Value-model reliability diagram (predicted Q vs realized reward). |
+| `fig5_lp_assignment.pdf` | LP vs greedy value, paired per-seed difference, LP rounding optimality gap, solve-time scaling. |
+| `fig6_ghost_diagnostics.pdf` | Human-ghost prior diagnostics with CI bands. |
+| `fig7_ope_snips.pdf` | Off-policy evaluation: SNIPS estimates from the KL-ghost logs vs on-policy ground truth. |
+| `tables/*.tex` | Booktabs summary tables (mean +/- 95% CI over seeds, plus paired per-seed differences), ready to `\input`. |
+| `data/*_runs.csv` | Raw per-seed runs; reuse with `--reuse-data` to re-plot without re-running. |
+
+Every band and error bar is a 95% confidence interval over seeds
+(t-distribution, one seed = one run). PNG copies are written next to each PDF.
+Use `--usetex` if a local LaTeX installation should render the text instead of
+mathtext. Reported metrics include cumulative regret, convergence step
+(first step at which the rolling reward reaches 95% of its final plateau),
+value-model calibration, human-intervention counts, LP rounding gap versus the
+LP fractional upper bound, and LP solve-time scaling.
+
+To support the multi-seed pipeline, two demos were lightly refactored (behavior
+unchanged, both still run standalone):
+
+- `demo_human_ghost.py` now exposes `run_experiment(config, steps, seed, beta, sample)`
+  and `add_derived_metrics(df)` instead of doing everything in `main()`.
+- `demo_convex_assignment.py`'s `build_lp(...)` now also returns the optimal LP
+  fractional objective, and the per-window metrics CSV gains
+  `lp_fractional_value`, `lp_rounded_expected_value`, `greedy_expected_value`,
+  `lp_rounding_gap`, and `lp_rounding_gap_rel` columns.
+
+Note when loading the metrics CSVs with pandas: the literal string `null`
+(null actions) is parsed as NaN by default — use
+`pd.read_csv(path, keep_default_na=False, na_values=[""])`.
+
+---
+
 ##  MVP demos
 
-1. **Contextual bandit** — compares random, human, greedy, and KL-human-ghost policies.
+1. **Contextual bandit** — compares random, imitation, greedy (with/without ε), Thompson sampling, and the KL operator-prior policy.
 2. **LP assignment** — compares rolling LP assignment with greedy value-density planning.
 3. **Human ghost** — tests whether the human prior stabilizes poor value estimates and improves calibrated value estimates.
 
@@ -84,6 +131,9 @@ Generated files are written to `outputs/`.
 #### Demo 1 — contextual bandit
 
 Synthetic waste stream + material probabilities + pick success + human ghost + learned value model.
+Policies compared: random, imitation of the (noisy) human ghost, greedy without
+exploration, greedy with epsilon-exploration, Thompson sampling on a Bayesian
+linear-regression posterior, and the KL human-ghost policy.
 
 Plots:
 
@@ -190,7 +240,6 @@ $$
 $$
 
 The LP planner assigns item/robot/bin triples subject to item uniqueness, robot capacity, reachability, and empty/full bin availability. Wrong-bin quality loss is handled through the expected gain formula using the no-credit indicator and \(C^{\mathrm{contamination}}_{M,b}\), rather than a separate bin-quality constraint.
-
 
 ---
 

@@ -1,0 +1,15 @@
+\begin{table}[t]
+  \centering
+  \caption{Human-ghost prior diagnostics (mean $\pm$ 95\% CI over seeds).}
+  \label{tab:ghost}
+  \begin{tabular}{lcccc}
+    \toprule
+    Policy & Total reward & Correct-bin & Contam.\ rate & Corrections \\
+    \midrule
+    Greedy (bad $\widehat{Q}$) & $925.1 \pm 11.2$ & $0.956 \pm 0.005$ & $0.043 \pm 0.005$ & $315.6 \pm 10.9$ \\
+    Imitation $\mu_H$ & $763.0 \pm 12.5$ & $0.843 \pm 0.007$ & $0.156 \pm 0.006$ & $0.0 \pm 0.0$ \\
+    Op.-prior KL (bad $\widehat{Q}$) & $827.3 \pm 10.0$ & $0.892 \pm 0.005$ & $0.107 \pm 0.005$ & $45.8 \pm 4.6$ \\
+    Op.-prior KL (oracle+noise $\widehat{Q}$) & $867.4 \pm 11.0$ & $0.919 \pm 0.005$ & $0.080 \pm 0.004$ & $63.6 \pm 6.5$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}

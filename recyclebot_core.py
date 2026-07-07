@@ -20,6 +20,7 @@ import json
 import math
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
+import zlib
 
 import numpy as np
 
@@ -154,15 +155,17 @@ class RewardResult:
 class RecycleBotSimulator:
     """Small stochastic simulator for the RecycleBot demos."""
 
+    # Only quantities a deployed perception stack could actually report:
+    # material posterior, grasp scores, geometry, condition flags, environment.
+    # True pick/place probabilities and the simulator's expected gain are
+    # deliberately excluded (they were oracle leakage; see REVIEW.md 3.3).
     FEATURE_NAMES = [
         "bias",
         "p_correct_target_bin",
         "max_material_posterior",
         "best_grasp_G_star",
-        "p_pick",
-        "p_place",
         "urgency",
-        "expected_gain_scaled",
+        "posterior_gain_scaled",
         "lighting_quality",
         "is_bottle",
         "is_tray",
@@ -411,6 +414,13 @@ class RecycleBotSimulator:
         return float(p_pick * p_place * G - C_risk - C_motion)
 
     def expected_true_reward(self, action: Action) -> float:
+        """Exact expectation of ``sample_reward`` under the true material.
+
+        E[R] = p_pick p_place (V 1[correct] - C_contam 1[wrong])
+               - (1 - p_pick) 0.08 max(V 1[correct], 0)
+               - p_pick (1 - p_place) (0.05 + 0.15 risk)
+               - C_motion - C_risk
+        """
         if action.is_null:
             return 0.0
         assert action.tau is not None and action.robot_id is not None and action.target_bin is not None
@@ -423,7 +433,10 @@ class RecycleBotSimulator:
         contamination = 0.0 if correct else float(self.contamination_penalty[M][action.target_bin])
         C_risk = 0.32 * tau.risk_score
         C_motion = 0.055 * tau.cycle_time_by_robot[action.robot_id]
-        return float(p_pick * p_place * (value - contamination) - C_risk - C_motion)
+        expected = p_pick * p_place * (value - contamination)
+        expected -= (1.0 - p_pick) * 0.08 * max(value, 0.0)
+        expected -= p_pick * (1.0 - p_place) * (0.05 + 0.15 * tau.risk_score)
+        return float(expected - C_risk - C_motion)
 
     # Backward-compatible alias used by old scripts.
     def true_expected_reward(self, action: Action) -> RewardResult:
@@ -497,10 +510,9 @@ class RecycleBotSimulator:
         tau = action.tau
         p_correct = self.p_correct_bin_from_posterior(tau, action.target_bin)
         max_p = max(tau.material_posterior.values())
-        p_pick = tau.pick_success_by_robot[action.robot_id]
-        p_place = self.p_place_success(tau, action.robot_id, action.target_bin)
         urgency = clamp(1.0 / max(tau.time_to_exit_s, 0.10), 0.0, 5.0) / 5.0
-        expected_gain_scaled = self.expected_action_gain(action, env) / 2.5
+        # Observable economics: posterior-weighted gain, no true pick/place probs.
+        posterior_gain_scaled = self.expected_gain_G(tau, action.target_bin) / 2.5
         target_value_prior = sum(
             max(0.0, float(self.material_item_value[M]))
             for M in self.materials
@@ -513,10 +525,8 @@ class RecycleBotSimulator:
                 p_correct,
                 max_p,
                 tau.best_grasp_G_star,
-                p_pick,
-                p_place,
                 urgency,
-                expected_gain_scaled,
+                posterior_gain_scaled,
                 env.quality,
                 1.0 if tau.shape_F == "bottle" else 0.0,
                 1.0 if tau.shape_F == "tray" else 0.0,
@@ -532,31 +542,85 @@ class RecycleBotSimulator:
         )
         return x
 
+    def human_material_belief(self, tau: WasteTau) -> Dict[str, float]:
+        """Noisy human perception of the material of item tau.
+
+        Confusion-channel model: with effective skill s (degraded by item
+        condition) the human commits to the true material; otherwise they
+        commit to a *wrong* label, drawn in proportion to the machine
+        posterior over the non-true classes (hard items confuse humans the
+        same way they confuse the camera). The committed label carries 0.9 of
+        the belief mass; the rest follows the machine posterior. The draw is
+        deterministic per item (CRC32 of the item id), so repeated calls and
+        policies see the same human.
+        """
+        hm = self.config.get("human_model", {})
+        skill = float(hm.get("skill", 0.85))
+        cond_factor = dict(hm.get("skill_by_condition", {})).get(tau.condition_K, 1.0)
+        s = clamp(skill * float(cond_factor), 0.0, 1.0)
+
+        h_rng = np.random.default_rng(zlib.crc32(f"human:{tau.tau_id}".encode()) & 0xFFFFFFFF)
+        if h_rng.random() < s:
+            label = tau.material_true_M
+        else:
+            others = {M: p for M, p in tau.material_posterior.items() if M != tau.material_true_M}
+            total = max(sum(others.values()), EPS)
+            label = str(h_rng.choice(list(others.keys()), p=np.asarray(list(others.values())) / total))
+
+        commit = 0.9
+        return {
+            M: float(commit * (1.0 if M == label else 0.0) + (1.0 - commit) * p)
+            for M, p in tau.material_posterior.items()
+        }
+
+    def human_gain_estimate(self, tau: WasteTau, target_bin: str) -> float:
+        """Expected material/bin gain under the human's own noisy belief."""
+        belief = self.human_material_belief(tau)
+        total = 0.0
+        for M, prob in belief.items():
+            correct = self.bin_for_material(M) == target_bin
+            value = float(self.material_item_value[M]) if correct else 0.0
+            contamination = 0.0 if correct else float(self.contamination_penalty[M][target_bin])
+            total += prob * (value - contamination)
+        return float(total)
+
     def human_ghost_policy(self, actions: Sequence[Action], env: EnvironmentState, temperature: Optional[float] = None) -> np.ndarray:
+        """mu_H(a|S): a skilled-but-noisy human heuristic.
+
+        The human scores actions with their own noisy material belief
+        (``human_material_belief``), a grasp-quality proxy for pickability,
+        visible urgency, and visible risk cues. No true pick/place
+        probabilities and no oracle labels enter the score; human quality is
+        controlled by ``human_model.skill`` in the config.
+        """
+        hm = self.config.get("human_model", {})
         if temperature is None:
-            temperature = float(self.config["learning"]["softmax_temperature"])
+            temperature = float(hm.get("softmax_temperature", self.config["learning"]["softmax_temperature"]))
+        w_gain = float(hm.get("w_gain", 1.2))
+        w_grasp = float(hm.get("w_grasp", 0.5))
+        w_urgency = float(hm.get("w_urgency", 0.35))
+        w_risk = float(hm.get("w_risk", 0.65))
+        w_cycle = float(hm.get("w_cycle", 0.08))
+        null_score = float(hm.get("null_score", -0.20))
         scores: List[float] = []
         for action in actions:
             if action.is_null:
-                scores.append(-0.20)
+                scores.append(null_score)
                 continue
             assert action.tau is not None and action.robot_id is not None and action.target_bin is not None
             tau = action.tau
-            p_correct = self.p_correct_bin_from_posterior(tau, action.target_bin)
-            p_pick = tau.pick_success_by_robot[action.robot_id]
-            p_place = self.p_place_success(tau, action.robot_id, action.target_bin)
+            gain_H = self.human_gain_estimate(tau, action.target_bin)
             urgency = clamp(1.0 / max(tau.time_to_exit_s, 0.10), 0.0, 5.0) / 5.0
-            expected = self.expected_action_gain(action, env)
-            true_match = 1.0 if action.target_bin == tau.true_bin else 0.0
+            # Visible risk cues: item condition plus perceived hazard mass.
+            condition_risk = float(self.config["condition_effects"][tau.condition_K]["risk"])
+            perceived_hazard = self.human_material_belief(tau).get("hazard", 0.0)
+            visible_risk = condition_risk + 0.45 * perceived_hazard
             score = (
-                1.25 * expected
-                + 0.65 * p_correct
-                + 0.45 * p_pick
-                + 0.20 * p_place
-                + 0.35 * urgency
-                + 0.25 * true_match
-                - 0.65 * tau.risk_score
-                - 0.08 * tau.cycle_time_by_robot[action.robot_id]
+                w_gain * gain_H
+                + w_grasp * tau.best_grasp_G_star
+                + w_urgency * urgency
+                - w_risk * visible_risk
+                - w_cycle * tau.cycle_time_by_robot[action.robot_id]
             )
             scores.append(float(score))
         return softmax(scores, temperature=temperature)
@@ -622,8 +686,57 @@ class LinearValueModel:
         return err
 
 
+class BayesianLinearValueModel:
+    """Exact Bayesian linear regression posterior for Q_hat(S, action).
+
+    Prior w ~ N(0, prior_var I), observation noise N(0, noise_var). Posterior
+    covariance is maintained with rank-one Sherman-Morrison updates (O(d^2)
+    per step). The predictive epistemic variance x^T Sigma x provably
+    contracts as data accumulates, unlike the noisy bootstrap ensemble it
+    replaces (see REVIEW.md 4.1/5.3), so uncertainty-gated human queries can
+    actually anneal. ``sample_q`` draws a posterior function sample for
+    Thompson-sampling exploration.
+    """
+
+    def __init__(self, feature_dim: int, prior_var: float = 1.0, noise_var: float = 0.25, seed: int = 123):
+        self.noise_var = float(noise_var)
+        self.cov = np.eye(feature_dim) * float(prior_var)
+        self.b = np.zeros(feature_dim)
+        self.w = np.zeros(feature_dim)
+        self.rng = np.random.default_rng(seed)
+
+    def update(self, features: np.ndarray, reward: float) -> None:
+        x = np.asarray(features, dtype=float)
+        cov_x = self.cov @ x
+        denom = self.noise_var + float(x @ cov_x)
+        self.cov -= np.outer(cov_x, cov_x) / denom
+        self.cov = 0.5 * (self.cov + self.cov.T)  # keep symmetric under roundoff
+        self.b += x * float(reward) / self.noise_var
+        self.w = self.cov @ self.b
+
+    def predict_mean_var(self, feature_matrix: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        X = np.asarray(feature_matrix, dtype=float)
+        mean = X @ self.w
+        epistemic_var = np.einsum("ij,jk,ik->i", X, self.cov, X)
+        return mean, np.maximum(epistemic_var, 0.0)
+
+    def sample_q(self, feature_matrix: np.ndarray, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+        if rng is None:
+            rng = self.rng
+        # Sample w ~ N(w_post, Sigma) via Cholesky with a small jitter.
+        d = self.cov.shape[0]
+        jitter = 1e-10 * np.eye(d)
+        L = np.linalg.cholesky(self.cov + jitter)
+        w_sample = self.w + L @ rng.standard_normal(d)
+        return np.asarray(feature_matrix, dtype=float) @ w_sample
+
+
 class LinearValueEnsemble:
-    """Tiny bootstrap-style ensemble to expose epistemic variance."""
+    """Tiny bootstrap-style ensemble to expose epistemic variance.
+
+    Kept for backward compatibility (live dashboard); the bandit demo now
+    uses ``BayesianLinearValueModel``, whose variance actually contracts.
+    """
 
     def __init__(self, feature_dim: int, n_models: int = 5, seed: int = 123):
         self.models = [LinearValueModel(feature_dim, seed=seed + 31 * i) for i in range(n_models)]
@@ -702,7 +815,7 @@ def choose_action(
     elif mode in {"human", "imitation", "imitation_muh"}:
         probs = np.asarray(human_prior, dtype=float)
         probs = probs / max(probs.sum(), EPS)
-    elif mode == "greedy":
+    elif mode in {"greedy", "greedy_eps"}:
         probs = np.zeros(n, dtype=float)
         probs[int(np.argmax(q_values))] = 1.0
     elif mode in {"kl", "kl_human_ghost"}:

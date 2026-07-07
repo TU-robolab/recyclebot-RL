@@ -1,0 +1,13 @@
+\begin{table}[t]
+  \centering
+  \caption{Off-policy evaluation from KL-ghost behavior logs: SNIPS estimates vs.\ on-policy ground truth (mean $\pm$ 95\% CI over seeds); ESS is the effective sample size of the importance weights.}
+  \label{tab:ope}
+  \begin{tabular}{lccc}
+    \toprule
+    Target policy & On-policy value & SNIPS estimate & ESS / steps \\
+    \midrule
+    Imitation $\mu_H$ & $0.399 \pm 0.015$ & $0.408 \pm 0.017$ & 1320 / 1500 \\
+    Random & $-0.253 \pm 0.010$ & $-0.217 \pm 0.029$ & 95 / 1500 \\
+    \bottomrule
+  \end{tabular}
+\end{table}

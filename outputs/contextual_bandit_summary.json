@@ -1,34 +1,50 @@
 {
   "greedy": {
-    "final_cumulative_reward": 636.6501500000007,
-    "final_value_per_min": 23.874380625000025,
-    "mean_reward_last_100": 0.585812,
-    "mean_correct_bin_rate_last_100": 0.58,
+    "final_cumulative_reward": 994.9156999999957,
+    "final_value_per_min": 24.872892499999892,
+    "mean_reward_last_100": 0.7077015,
+    "mean_correct_bin_rate_last_100": 0.6,
     "interventions_total": 0,
-    "mean_epistemic_var_last_100": 0.01570173365834943
+    "mean_epistemic_var_last_100": 0.07948668318224819
+  },
+  "greedy_eps": {
+    "final_cumulative_reward": 913.2076999999965,
+    "final_value_per_min": 22.830192499999914,
+    "mean_reward_last_100": 0.7000195000000001,
+    "mean_correct_bin_rate_last_100": 0.64,
+    "interventions_total": 0,
+    "mean_epistemic_var_last_100": 0.016241462288992158
   },
   "human": {
-    "final_cumulative_reward": 544.8068500000018,
-    "final_value_per_min": 20.430256875000065,
-    "mean_reward_last_100": 0.4912545,
-    "mean_correct_bin_rate_last_100": 0.54,
+    "final_cumulative_reward": 636.1148999999996,
+    "final_value_per_min": 15.90287249999999,
+    "mean_reward_last_100": 0.4604770000000001,
+    "mean_correct_bin_rate_last_100": 0.46,
     "interventions_total": 0,
-    "mean_epistemic_var_last_100": 0.0184025351261116
+    "mean_epistemic_var_last_100": 0.005301044026608889
   },
   "kl_human_ghost": {
-    "final_cumulative_reward": 590.7337500000016,
-    "final_value_per_min": 22.15251562500006,
-    "mean_reward_last_100": 0.4928925000000001,
-    "mean_correct_bin_rate_last_100": 0.56,
-    "interventions_total": 316,
-    "mean_epistemic_var_last_100": 0.013004177665112675
+    "final_cumulative_reward": 761.3191499999983,
+    "final_value_per_min": 19.03297874999996,
+    "mean_reward_last_100": 0.4719765,
+    "mean_correct_bin_rate_last_100": 0.46,
+    "interventions_total": 62,
+    "mean_epistemic_var_last_100": 0.006422948317282197
   },
   "random": {
-    "final_cumulative_reward": -236.73464999999925,
-    "final_value_per_min": -8.87754937499997,
-    "mean_reward_last_100": -0.26699499999999987,
-    "mean_correct_bin_rate_last_100": 0.08,
+    "final_cumulative_reward": -370.117299999999,
+    "final_value_per_min": -9.252932499999975,
+    "mean_reward_last_100": -0.1848115,
+    "mean_correct_bin_rate_last_100": 0.07,
     "interventions_total": 0,
-    "mean_epistemic_var_last_100": 0.006101363802636552
+    "mean_epistemic_var_last_100": 0.004237380662962249
+  },
+  "thompson": {
+    "final_cumulative_reward": 1004.9933999999975,
+    "final_value_per_min": 25.124834999999937,
+    "mean_reward_last_100": 0.650118,
+    "mean_correct_bin_rate_last_100": 0.58,
+    "interventions_total": 0,
+    "mean_epistemic_var_last_100": 0.03730751632541638
   }
 }

@@ -37,14 +37,16 @@ def build_lp(
     actions: Sequence[Action],
     env,
     capacity_s: float,
-) -> Tuple[np.ndarray, List[dict], float, bool]:
+) -> Tuple[np.ndarray, List[dict], float, bool, float]:
     """Solve LP relaxation for one planning window.
 
     Feasibility filtering for reachability and full bins happens when actions are
     created. The LP itself enforces item uniqueness and robot cycle-time capacity.
+    Returns (fractions, rows, solve_ms, success, lp_fractional_value) where the
+    last element is the optimal LP objective, an upper bound on any integral plan.
     """
     if not actions:
-        return np.asarray([]), [], 0.0, False
+        return np.asarray([]), [], 0.0, False, 0.0
 
     objective = -np.asarray([sim.expected_action_gain(action, env) for action in actions], dtype=float)
     n = len(actions)
@@ -81,7 +83,7 @@ def build_lp(
     )
     solve_ms = (time.perf_counter() - t0) * 1000.0
     if not res.success:
-        return np.zeros(n, dtype=float), [], solve_ms, False
+        return np.zeros(n, dtype=float), [], solve_ms, False, 0.0
 
     rows = []
     for j, action in enumerate(actions):
@@ -107,7 +109,7 @@ def build_lp(
                 "best_grasp_G_star": tau.best_grasp_G_star,
             }
         )
-    return np.asarray(res.x, dtype=float), rows, solve_ms, True
+    return np.asarray(res.x, dtype=float), rows, solve_ms, True, float(-res.fun)
 
 
 def round_lp_solution(
@@ -212,12 +214,14 @@ def run_demo(config: dict, windows: int, seed: int) -> Tuple[pd.DataFrame, pd.Da
         bin_state = sim.sample_bin_state()
         W_t = sim.sample_waste_set(step=w, env=env)
         actions = sim.actions_for(W_t, include_null=False, only_feasible=True, bin_state=bin_state)
-        fractions, lp_rows, solve_ms, success = build_lp(sim, actions, env, capacity_s)
+        fractions, lp_rows, solve_ms, success, lp_fractional_value = build_lp(sim, actions, env, capacity_s)
         lp_selected = round_lp_solution(sim, actions, fractions, capacity_s) if success else []
         greedy_selected = greedy_baseline(sim, actions, env, capacity_s) if actions else []
         lp_summary = summarize_selection(sim, actions, lp_selected, capacity_s)
         greedy_summary = summarize_selection(sim, actions, greedy_selected, capacity_s)
         best_possible = float(sum(max(0.0, sim.expected_true_reward(action)) for action in actions))
+        lp_rounded_expected = float(sum(sim.expected_action_gain(actions[j], env) for j in lp_selected))
+        greedy_expected = float(sum(sim.expected_action_gain(actions[j], env) for j in greedy_selected))
 
         rows.append(
             {
@@ -226,6 +230,11 @@ def run_demo(config: dict, windows: int, seed: int) -> Tuple[pd.DataFrame, pd.Da
                 "n_actions": len(actions),
                 "lp_success": success,
                 "lp_solve_ms": solve_ms,
+                "lp_fractional_value": lp_fractional_value,
+                "lp_rounded_expected_value": lp_rounded_expected,
+                "greedy_expected_value": greedy_expected,
+                "lp_rounding_gap": max(0.0, lp_fractional_value - lp_rounded_expected),
+                "lp_rounding_gap_rel": max(0.0, lp_fractional_value - lp_rounded_expected) / max(abs(lp_fractional_value), 1e-9),
                 "lighting_U1": env.lighting_U1,
                 "conveyor_speed_V_mps": env.conveyor_speed_mps,
                 "full_bins": ",".join([b for b, status in bin_state.items() if status == "full"]),

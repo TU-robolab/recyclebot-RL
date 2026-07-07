@@ -12,7 +12,9 @@ This demo compares four policies:
   1. greedy_bad_Q: a deliberately incomplete value model,
   2. imitation_muH: pure human-ghost imitation,
   3. KL_bad_Q: human ghost plus a degraded Q estimate,
-  4. KL_calibrated_Q: human ghost plus a calibrated Q estimate.
+  4. KL_oracle_noise_Q: human ghost plus an oracle-plus-noise Q estimate
+     (the true expected reward with N(0, 0.10) noise; an upper-bound diagnostic,
+     not a fitted model).
 """
 from __future__ import annotations
 
@@ -57,25 +59,14 @@ def choose_index(probs: Sequence[float], rng: np.random.Generator, sample: bool)
     return int(np.argmax(p))
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="RecycleBot human-ghost demo")
-    parser.add_argument("--config", type=str, default=str(Path(__file__).with_name("recyclebot_config.json")))
-    parser.add_argument("--steps", type=int, default=1200)
-    parser.add_argument("--seed", type=int, default=17)
-    parser.add_argument("--beta", type=float, default=0.55)
-    parser.add_argument("--sample", action="store_true", help="Sample from each policy instead of taking argmax.")
-    parser.add_argument("--output-dir", type=str, default=str(Path(__file__).with_name("outputs")))
-    args = parser.parse_args()
-
-    config = load_config(args.config)
-    sim = RecycleBotSimulator(config=config, seed=args.seed)
-    rng = np.random.default_rng(args.seed + 909)
-    out_dir = Path(args.output_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
+def run_experiment(config: dict, steps: int, seed: int, beta: float = 0.55, sample: bool = False) -> pd.DataFrame:
+    """Run the four ghost-diagnostic policies for one seed and return raw rows."""
+    sim = RecycleBotSimulator(config=config, seed=seed)
+    rng = np.random.default_rng(seed + 909)
     decision_window_s = float(config["temporal_dynamics"]["decision_window_s"])
 
     rows = []
-    for step in range(args.steps):
+    for step in range(steps):
         env = sim.sample_environment()
         bin_state = sim.sample_bin_state()
         W_t = sim.sample_waste_set(step=step, env=env)
@@ -85,20 +76,20 @@ def main() -> None:
         mu_h = sim.human_ghost_policy(actions, env)
         true_q = np.asarray([sim.expected_true_reward(action) for action in actions], dtype=float)
         bad_q = np.asarray([bad_q_estimate(sim, action) for action in actions], dtype=float)
-        calibrated_q = true_q + rng.normal(0.0, 0.10, size=len(actions))
+        oracle_noise_q = true_q + rng.normal(0.0, 0.10, size=len(actions))
         degraded_q = 0.35 * true_q + 0.65 * bad_q + rng.normal(0.0, 0.18, size=len(actions))
 
         policies = {
             "greedy_bad_Q": sim.greedy_policy(bad_q),
             "imitation_muH": mu_h,
-            "KL_bad_Q": sim.kl_regularized_policy(mu_h, degraded_q, beta=args.beta),
-            "KL_calibrated_Q": sim.kl_regularized_policy(mu_h, calibrated_q, beta=args.beta),
+            "KL_bad_Q": sim.kl_regularized_policy(mu_h, degraded_q, beta=beta),
+            "KL_oracle_noise_Q": sim.kl_regularized_policy(mu_h, oracle_noise_q, beta=beta),
         }
         human_top_idx = int(np.argmax(mu_h))
         human_top_action = actions[human_top_idx]
 
         for policy_name, probs in policies.items():
-            idx = choose_index(probs, rng, sample=args.sample)
+            idx = choose_index(probs, rng, sample=sample)
             action = actions[idx]
             reward = float(true_q[idx])
             sorted_item = bool(not action.is_null)
@@ -121,7 +112,7 @@ def main() -> None:
                     "lighting_U1": env.lighting_U1,
                     "conveyor_speed_V_mps": env.conveyor_speed_mps,
                     "selected_action": action.label(),
-                    "reward": reward,
+                    "reward": reward,  # expected true reward of the choice (deterministic diagnostic)
                     "sorted_item": sorted_item,
                     "correct_bin": correct,
                     "contamination_event": contamination,
@@ -132,12 +123,15 @@ def main() -> None:
                     "human_prior_prob_selected": float(mu_h[idx]),
                     "true_q_selected": float(true_q[idx]),
                     "bad_q_selected": float(bad_q[idx]),
-                    "calibrated_q_selected": float(calibrated_q[idx]),
+                    "oracle_noise_q_selected": float(oracle_noise_q[idx]),
                     "degraded_q_selected": float(degraded_q[idx]),
                 }
             )
+    return pd.DataFrame(rows)
 
-    df = pd.DataFrame(rows)
+
+def add_derived_metrics(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
     df["cum_reward"] = df.groupby("policy")["reward"].cumsum()
     df["recovered_value_per_min"] = df["cum_reward"] / np.maximum(df["elapsed_s"] / 60.0, 1e-12)
     df["cum_sorted"] = df.groupby("policy")["sorted_item"].cumsum()
@@ -145,6 +139,25 @@ def main() -> None:
     df["correct_bin_rate"] = df["cum_correct"] / np.maximum(df["cum_sorted"], 1)
     df["cum_corrections_proxy"] = df.groupby("policy")["correction_needed_proxy"].cumsum()
     df["rolling_reward_100"] = df.groupby("policy")["reward"].transform(lambda s: s.rolling(100, min_periods=5).mean())
+    return df
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="RecycleBot human-ghost demo")
+    parser.add_argument("--config", type=str, default=str(Path(__file__).with_name("recyclebot_config.json")))
+    parser.add_argument("--steps", type=int, default=1200)
+    parser.add_argument("--seed", type=int, default=17)
+    parser.add_argument("--beta", type=float, default=0.55)
+    parser.add_argument("--sample", action="store_true", help="Sample from each policy instead of taking argmax.")
+    parser.add_argument("--output-dir", type=str, default=str(Path(__file__).with_name("outputs")))
+    args = parser.parse_args()
+
+    config = load_config(args.config)
+    out_dir = Path(args.output_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    df = run_experiment(config, steps=args.steps, seed=args.seed, beta=args.beta, sample=args.sample)
+    df = add_derived_metrics(df)
 
     metrics_path = out_dir / "human_ghost_metrics.csv"
     summary_path = out_dir / "human_ghost_summary.json"
