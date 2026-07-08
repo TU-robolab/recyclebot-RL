@@ -135,8 +135,6 @@ $$
 \mathcal{Y}=\{\mathrm{bottle},\mathrm{tray},\mathrm{can},\mathrm{box}\}.
 $$
 
-(Renamed from \(\mathcal{F}\) so it does not clash with the feature vector \(\mathbf{F}_{\tau(t)}\).)
-
 The item-condition set is:
 
 $$
