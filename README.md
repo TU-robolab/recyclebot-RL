@@ -31,7 +31,7 @@ There is no separate bin-quality constraint in this simplified version. Quality 
 
 | File | Purpose |
 |---|---|
-| `RECYCLEBOT_RL_MATHEMATICAL_FORMULATION.md` | Expanded mathematical formulation. This is the current source of truth. |
+| `RecycleBot_RL_Mathematical_Formulation.md` | Expanded mathematical formulation. This is the current source of truth. |
 | `RecycleBot RL.md` | Summary mathematical overview of the algorithms from scratch. |
 | `recyclebot_config.json` | Editable simulator configuration. |
 | `recyclebot_core.py` | Core simulator, value model, policies, and helper functions. |
