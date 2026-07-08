@@ -1,0 +1,30 @@
+\begin{table}[t]
+  \centering
+  \caption{Skill $\times$ $\beta$ sweep for the operator-prior (KL) policy (mean $\pm$ 95\% CI over seeds). $\Delta$ value/min is the paired per-seed improvement over pure imitation of the same operator.}
+  \label{tab:sweep}
+  \begin{tabular}{llccc}
+    \toprule
+    Skill & $\beta$ & Final regret & $\Delta$ value/min & Interventions \\
+    \midrule
+    0.60 & 0.2 & $331 \pm 8$ & $+9.7 \pm 0.5$ & $32 \pm 4$ \\
+     & 0.65 & $580 \pm 7$ & $+3.7 \pm 0.6$ & $30 \pm 3$ \\
+     & 2.0 & $674 \pm 10$ & $+1.5 \pm 0.5$ & $33 \pm 7$ \\
+     & 5.0 & $708 \pm 10$ & $+0.6 \pm 0.4$ & $33 \pm 7$ \\
+    \addlinespace
+    0.75 & 0.2 & $240 \pm 6$ & $+6.9 \pm 0.5$ & $42 \pm 5$ \\
+     & 0.65 & $401 \pm 5$ & $+2.9 \pm 0.6$ & $37 \pm 6$ \\
+     & 2.0 & $480 \pm 7$ & $+1.1 \pm 0.6$ & $36 \pm 7$ \\
+     & 5.0 & $505 \pm 6$ & $+0.4 \pm 0.5$ & $37 \pm 7$ \\
+    \addlinespace
+    0.85 & 0.2 & $181 \pm 6$ & $+5.4 \pm 0.7$ & $48 \pm 7$ \\
+     & 0.65 & $301 \pm 6$ & $+2.7 \pm 0.5$ & $41 \pm 7$ \\
+     & 2.0 & $365 \pm 10$ & $+1.1 \pm 0.3$ & $42 \pm 7$ \\
+     & 5.0 & $386 \pm 10$ & $+0.4 \pm 0.2$ & $41 \pm 7$ \\
+    \addlinespace
+    0.95 & 0.2 & $132 \pm 7$ & $+3.7 \pm 0.5$ & $61 \pm 9$ \\
+     & 0.65 & $203 \pm 5$ & $+2.0 \pm 0.7$ & $53 \pm 6$ \\
+     & 2.0 & $250 \pm 7$ & $+0.9 \pm 0.6$ & $52 \pm 7$ \\
+     & 5.0 & $266 \pm 8$ & $+0.3 \pm 0.5$ & $52 \pm 6$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}

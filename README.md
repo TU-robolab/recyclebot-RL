@@ -40,6 +40,7 @@ There is no separate bin-quality constraint in this simplified version. Quality 
 | `demo_human_ghost.py` | Demo 3: human-ghost prior diagnostics. |
 | `demo_live_dashboard.py` | Optional local matplotlib dashboard. |
 | `paper_figures.py` | Multi-seed publication figures (PDF/PNG) and LaTeX summary tables. |
+| `sweep_skill_beta.py` | Skill × β sweep: operator quality vs. KL binding strength (heatmaps + table). |
 | `plot_style.py` | Shared publication matplotlib style (Computer Modern, Okabe-Ito colors, CI helpers). |
 | `requirements.txt` | Python dependencies. |
 
@@ -93,6 +94,7 @@ figures plus LaTeX tables to `figures/`:
 | `fig5_lp_assignment.pdf` | LP vs greedy value, paired per-seed difference, LP rounding optimality gap, solve-time scaling. |
 | `fig6_ghost_diagnostics.pdf` | Human-ghost prior diagnostics with CI bands. |
 | `fig7_ope_snips.pdf` | Off-policy evaluation: SNIPS estimates from the KL-ghost logs vs on-policy ground truth. |
+| `fig8_skill_beta_sweep.pdf` | Skill × β heatmaps (run `python sweep_skill_beta.py --seeds 10`): regret and paired improvement over imitation. |
 | `tables/*.tex` | Booktabs summary tables (mean +/- 95% CI over seeds, plus paired per-seed differences), ready to `\input`. |
 | `data/*_runs.csv` | Raw per-seed runs; reuse with `--reuse-data` to re-plot without re-running. |
 
