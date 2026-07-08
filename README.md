@@ -32,7 +32,7 @@ There is no separate bin-quality constraint in this simplified version. Quality 
 | File | Purpose |
 |---|---|
 | `RecycleBot_RL_Mathematical_Formulation.md` | Expanded mathematical formulation. This is the current source of truth. |
-| `RecycleBot RL.md` | Summary mathematical overview of the algorithms from scratch. |
+| `RecycleBot_RL.md` | Summary mathematical overview of the algorithms from scratch. |
 | `recyclebot_config.json` | Editable simulator configuration. |
 | `recyclebot_core.py` | Core simulator, value model, policies, and helper functions. |
 | `demo_contextual_bandit.py` | Demo 1: contextual bandit — random / imitation / greedy / greedy-ε / Thompson / KL operator-prior. |
