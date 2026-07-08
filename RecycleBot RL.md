@@ -20,9 +20,9 @@ Continous improvement for trash -sorting system. **Focus on augmenting robot pic
 
 1. **Value-based bin selection**
 
-   * Use a “human ghost” concept to provide input for RL
+   * Use a “human ghost” concept (operator prior \(\mu_H\) in the paper) to provide input for RL
 
-   * The system converges to picking with selecting the highest-value trash
+   * The system converges to picking the highest *expected net value* trash — not the highest raw item value (see Sect. 4)
 
 2. **Single waste stream**
 
@@ -40,7 +40,7 @@ Continous improvement for trash -sorting system. **Focus on augmenting robot pic
 
    * Combine the perception streams.
 
-   *  Converge towards an RKL bandit approach to adapt and improve pick selection based on both object observations and human feedback.
+   *  Converge towards a KL-regularized contextual bandit (forward KL toward the human prior; a reverse-KL variant exists in the code for experiments but is not the default) to adapt and improve pick selection based on both object observations and human feedback.
 
 
 
@@ -132,8 +132,10 @@ $$
 The shape set is:
 
 $$
-\mathcal{F}=\{\mathrm{bottle},\mathrm{tray},\mathrm{can},\mathrm{box}\}.
+\mathcal{Y}=\{\mathrm{bottle},\mathrm{tray},\mathrm{can},\mathrm{box}\}.
 $$
+
+(Renamed from \(\mathcal{F}\) so it does not clash with the feature vector \(\mathbf{F}_{\tau(t)}\).)
 
 The item-condition set is:
 
@@ -292,6 +294,8 @@ $$
 [\mathrm{reward}(S_t,a_t)].
 $$
 
+The current learner is exact Bayesian linear regression over action features. It gives the value estimate \(\widehat{Q}\), a contracting epistemic variance for the query rule (Sect. 10), and Thompson sampling for free (act greedily on one posterior draw).
+
 This is a good MVP because the first prototype can treat each pick as mostly independent.
 
 Move to a full MDP/RL formulation when future effects become important: robot busy time, queueing, bin emptying, conveyor congestion, or operator workload.
@@ -310,7 +314,7 @@ It means:
 
 It can be learned from hand tracking, corrections, manual picks, or operator choices.
 
-The human ghost is not ground truth. It is a prior. Humans are useful but can be tired, inconsistent, or attention-limited.
+The human ghost is not ground truth. It is a prior. Humans are useful but can be tired, inconsistent, or attention-limited. The simulator models this explicitly: the ghost is a parameterized *noisy* operator (`human_model.skill` in the config, degraded further on crumpled/occluded items) who scores actions with their own noisy material belief — no oracle access to true labels.
 
 #### 8 - KL human-ghost policy
 
@@ -337,6 +341,8 @@ Interpretation:
 
 The null action must be included in \(\mu_H\). Otherwise the robot is accidentally forced to pick something every time.
 
+The executed policy is mixed with a small uniform exploration component (\(\varepsilon=0.04\)). This matters twice: forward KL puts zero probability wherever \(\mu_H\) does, and off-policy evaluation needs the behavior policy to have full support.
+
 #### 9 - LP assignment planner
 
 When multiple robots can act in one short window, the system chooses a compatible set of actions.
@@ -347,7 +353,7 @@ $$
 y_{\{\tau,r,b\}(t)}\in[0,1].
 $$
 
-If \(y_{\tau,r,b,t}=1\), the planner dispatches action \(a(\tau,r,b)\).
+Fractional solutions are greedily rounded (by LP fraction, then score) under the same constraints; the rounded plan is what gets dispatched. The gap to the LP fractional optimum is reported as a diagnostic (median ≈ 7%).
 
 The LP maximizes:
 
@@ -382,19 +388,21 @@ There is no separate bin-quality constraint in the current MVP. We only keep emp
 The robot should not ask the human constantly. Ask only when both conditions hold:
 
 $$
-\mathrm{Var}_{\mathrm{epi}}(\widehat{Q}(S_{r(t)},\cdot))>\eta
+\max_{a}\mathrm{Var}_{\mathrm{epi}}(\widehat{Q}(S_t,a))>\eta_u
 $$
 
 and
 
 $$
-\Delta V^{\mathrm{human}}_{r(t)}>C^{\mathrm{human}}.
+\max_{a}\bar{Q}(S_t,a)>\eta_v.
 $$
 
 
 
-1. the model is uncertain in a way that more data can fix;
-2. the likely value of asking is larger than the cost of interrupting the human.
+1. the model is uncertain in a way that more data can fix (epistemic variance from the Bayesian posterior);
+2. the value at stake — as estimated by the robot's own model, not by any oracle — is large enough to justify interrupting the human. Each intervention also subtracts a fixed cost \(C^{\mathrm{human}}\) from the reward.
+
+Because the posterior variance contracts as data accumulate, the query rate anneals on its own: roughly 0.6 in the first 100 steps, zero after step ~300 in the bandit experiment.
 
 ____
 
