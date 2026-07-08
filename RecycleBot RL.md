@@ -314,7 +314,9 @@ It means:
 
 It can be learned from hand tracking, corrections, manual picks, or operator choices.
 
-The human ghost is not ground truth. It is a prior. Humans are useful but can be tired, inconsistent, or attention-limited. The simulator models this explicitly: the ghost is a parameterized *noisy* operator (`human_model.skill` in the config, degraded further on crumpled/occluded items) who scores actions with their own noisy material belief — no oracle access to true labels.
+The human ghost is not ground truth. It is a prior. Humans are useful but can be tired, inconsistent, or attention-limited.
+
+The simulator models this explicitly. The ghost is a *noisy* operator with a skill parameter (`human_model.skill`). Skill degrades on crumpled and occluded items. The ghost scores actions with its own noisy material belief. It has no oracle access to true labels.
 
 #### 8 - KL human-ghost policy
 
@@ -341,7 +343,10 @@ Interpretation:
 
 The null action must be included in \(\mu_H\). Otherwise the robot is accidentally forced to pick something every time.
 
-The executed policy is mixed with a small uniform exploration component (\(\varepsilon=0.04\)). This matters twice: forward KL puts zero probability wherever \(\mu_H\) does, and off-policy evaluation needs the behavior policy to have full support.
+The executed policy is mixed with a small uniform exploration component (\(\varepsilon=0.04\)). This matters twice:
+
+* forward KL puts zero probability wherever \(\mu_H\) does;
+* off-policy evaluation needs the behavior policy to have full support.
 
 #### 9 - LP assignment planner
 
@@ -400,9 +405,11 @@ $$
 
 
 1. the model is uncertain in a way that more data can fix (epistemic variance from the Bayesian posterior);
-2. the value at stake — as estimated by the robot's own model, not by any oracle — is large enough to justify interrupting the human. Each intervention also subtracts a fixed cost \(C^{\mathrm{human}}\) from the reward.
+2. the value at stake is large enough to justify interrupting the human. Estimated by the robot's own model, not by any oracle.
 
-Because the posterior variance contracts as data accumulate, the query rate anneals on its own: roughly 0.6 in the first 100 steps, zero after step ~300 in the bandit experiment.
+Each intervention subtracts a fixed cost \(C^{\mathrm{human}}\) from the reward.
+
+The posterior variance contracts as data accumulate. So the query rate anneals on its own: roughly 0.6 in the first 100 steps, zero after step ~300.
 
 ____
 
