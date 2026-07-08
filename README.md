@@ -126,7 +126,7 @@ Note when loading the metrics CSVs with pandas: the literal string `null`
 
 1. **Contextual bandit** — compares random, imitation, greedy (with/without ε), Thompson sampling, and the KL operator-prior policy.
 2. **LP assignment** — compares rolling LP assignment with greedy value-density planning.
-3. **Human ghost** — tests whether the human prior stabilizes poor value estimates and improves calibrated value estimates.
+3. **Human ghost** — tests what the human prior contributes when the value model is unreliable, and what it costs when the value model is strong.
 
 ### Demo Overview
 
@@ -166,7 +166,7 @@ Compare:
 - bad greedy value model;
 - pure human imitation;
 - KL policy with degraded value estimate;
-- KL policy with calibrated value estimate.
+- KL policy with oracle-plus-noise value estimate (upper-bound diagnostic).
 
 This diagnoses whether the human ghost helps when the value model is still unreliable.
 
