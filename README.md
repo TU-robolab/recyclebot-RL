@@ -1,10 +1,15 @@
-# RecycleBot RL demo package
+# RecycleBot RL
 
-This package contains a simplified RecycleBot RL formulation and three runnable demos.
+A simplified RecycleBot RL formulation, four runnable demos, and a multi-seed
+experiment pipeline that generates publication-quality figures and LaTeX
+tables.
 
+The [`v1.0-paper`](../../tree/v1.0-paper) tag archives the exact version used
+to generate the released figures and tables; the generated artifacts and
+per-seed data are attached to its GitHub release. The `main` branch tracks
+code and documentation only — run the pipeline below to regenerate artifacts.
 
-
-RecycleBot starts as a contextual bandit over \(a(\tau,r,b)\) actions, regularized toward a human-ghost prior and planned through a rolling LP assignment, with value driven by pick success, placement success, per-item recovery value, contamination cost, motion cost, and risk cost.
+RecycleBot starts as a contextual bandit over \(a(\tau,r,b)\) actions, regularized toward a human-ghost prior (operator prior) \(\mu_H\) and planned through a rolling LP assignment, with value driven by pick success, placement success, per-item recovery value, contamination cost, motion cost, and risk cost.
 
 
 
@@ -44,7 +49,7 @@ There is no separate bin-quality constraint in this simplified version. Quality 
 | `plot_style.py` | Shared publication matplotlib style (Computer Modern, Okabe-Ito colors, CI helpers). |
 | `requirements.txt` | Python dependencies. |
 
-The package intentionally keeps only one mathematical formulation file to avoid version confusion.
+The two mathematics documents are kept consistent; the expanded formulation is the source of truth.
 
 ---
 
@@ -93,7 +98,7 @@ figures plus LaTeX tables to `figures/`:
 | `fig4_bandit_calibration.pdf` | Value-model reliability diagram (predicted Q vs realized reward). |
 | `fig5_lp_assignment.pdf` | LP vs greedy value, paired per-seed difference, LP rounding optimality gap, solve-time scaling. |
 | `fig6_ghost_diagnostics.pdf` | Human-ghost prior diagnostics with CI bands. |
-| `fig7_ope_snips.pdf` | Off-policy evaluation: SNIPS estimates from the KL-ghost logs vs on-policy ground truth. |
+| `fig7_ope_snips.pdf` | Off-policy evaluation: SNIPS estimates from the operator-prior (KL-ghost) behavior logs vs on-policy ground truth. |
 | `fig8_skill_beta_sweep.pdf` | Skill × β heatmaps (run `python sweep_skill_beta.py --seeds 10`): regret and paired improvement over imitation. |
 | `tables/*.tex` | Booktabs summary tables (mean +/- 95% CI over seeds, plus paired per-seed differences), ready to `\input`. |
 | `data/*_runs.csv` | Raw per-seed runs; reuse with `--reuse-data` to re-plot without re-running. |
@@ -202,7 +207,7 @@ After running the demos, expected output files include:
 
 ---
 
-## 21. Summary
+## Summary
 
 The MVP is a rolling contextual bandit over actions:
 
@@ -247,9 +252,9 @@ The LP planner assigns item/robot/bin triples subject to item uniqueness, robot 
 
 ## License
 
-This repository is distributed under the MIT License unless otherwise stated.
+This repository is distributed under the MIT License (see `LICENSE`).
 
 ---
 
 Maintained by Elvis Borges @Triku Studio
-© 2026 Triku Studio — All Rights Reserved.**
+© 2026 Triku Studio
