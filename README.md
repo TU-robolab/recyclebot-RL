@@ -215,21 +215,21 @@ Each action produces a trajectory instruction:
 $$
 \Gamma_t(a(\tau,r,b))
 =
-(\boldsymbol{\xi}_{\{\tau,r,b\}(t)},\mathrm{PICK}(\tau),\mathrm{PLACE}(b)).
+(\boldsymbol{\xi}_{\tau,r,b,t},\mathrm{PICK}(\tau),\mathrm{PLACE}(b)).
 $$
 
 The expected one-action value is:
 
 $$
-\widehat{g}_{\{\tau,r,b\}(t)}
+\widehat{g}_{\tau,r,b,t}
 =
- p^{\mathrm{pick}}_{\{\tau,r\}(t)}
- p^{\mathrm{place}}_{\{\tau,r,b\}(t)}
- G_{\{\tau,b\}(t)}
+ p^{\mathrm{pick}}_{\tau,r,t}
+ p^{\mathrm{place}}_{\tau,r,b,t}
+ G_{\tau,b,t}
 -
-C^{\mathrm{risk}}_{\{\tau,r,b\}(t)}
+C^{\mathrm{risk}}_{\tau,r,b,t}
 -
-C^{\mathrm{motion}}_{\{\tau,r\}(t)}.
+C^{\mathrm{motion}}_{\tau,r,t}.
 $$
 
 The policy is regularized toward the human ghost:

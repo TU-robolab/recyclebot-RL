@@ -206,15 +206,15 @@ A high-value item can still be a bad pick if it is:
 So the system estimates the expected net value of one action:
 
 $$
-\widehat{g}_{\{\tau,r,b\}(t)}
+\widehat{g}_{\tau,r,b,t}
 =
-p^{\mathrm{pick}}_{\{\tau,r\}(t)}
-p^{\mathrm{place}}_{\{\tau,r,b\}(t)}
-G_{\{\tau,b\}(t)}
+p^{\mathrm{pick}}_{\tau,r,t}
+p^{\mathrm{place}}_{\tau,r,b,t}
+G_{\tau,b,t}
 -
-C^{\mathrm{risk}}_{\{\tau,r,b\}(t)}
+C^{\mathrm{risk}}_{\tau,r,b,t}
 -
-C^{\mathrm{motion}}_{\{\tau,r\}(t)}.
+C^{\mathrm{motion}}_{\tau,r,t}.
 $$
 
 This combines:
@@ -223,7 +223,7 @@ This combines:
 | ----------------------- | ------------------------------------------------------------ |
 | \(p^{\mathrm{pick}}\)   | probability the robot successfully picks the item            |
 | \(p^{\mathrm{place}}\)  | probability the robot successfully places it into the target bin |
-| \(G_{\{\tau,b\}(t)}\)   | expected material-bin gain                                   |
+| \(G_{\tau,b,t}\)   | expected material-bin gain                                   |
 | \(C^{\mathrm{risk}}\)   | risk/safety/hazard cost                                      |
 | \(C^{\mathrm{motion}}\) | motion, cycle-time, wear, or energy cost                     |
 
@@ -344,7 +344,7 @@ The null action must be included in \(\mu_H\). Otherwise the robot is accidental
 The executed policy is mixed with a small uniform exploration component (\(\varepsilon=0.04\)). This matters twice:
 
 * forward KL puts zero probability wherever \(\mu_H\) does;
-* off-policy evaluation needs the behavior policy to have full support.
+* off-policy evaluation needs the behavior policy to have full support. The mixture guarantees this on autonomous steps only: on intervention steps the executed rule is deterministic (\(\mu_t=1\) on the override), so evaluation from the logs is reliable for target policies close to the logged behavior and degrades for distant ones.
 
 #### 9 - LP assignment planner
 
@@ -353,7 +353,7 @@ When multiple robots can act in one short window, the system chooses a compatibl
 Define:
 
 $$
-y_{\{\tau,r,b\}(t)}\in[0,1].
+y_{\tau,r,b,t}\in[0,1].
 $$
 
 Fractional solutions are greedily rounded (by LP fraction, then score) under the same constraints; the rounded plan is what gets dispatched. The gap to the LP fractional optimum is reported as a diagnostic (median ≈ 7%).
@@ -363,7 +363,7 @@ The LP maximizes:
 $$
 \max_y
 \sum_{\tau,r,b}
-y_{\{\tau,r,b\}(t)}\widehat{g}_{\{\tau,r,b\}(t)}.
+y_{\tau,r,b,t}\widehat{g}_{\tau,r,b,t}.
 $$
 
 **Subject to:**
@@ -371,13 +371,13 @@ $$
 ##### One assignment per item
 
 $$
-\sum_{r,b}y_{\{\tau,r,b\}(t)}\le 1.
+\sum_{r,b}y_{\tau,r,b,t}\le 1.
 $$
 
 ##### Robot capacity
 
 $$
-\sum_{\tau,b}c^{\mathrm{cycle}}_{\{\tau,r\}(t)}y_{\{\tau,r,b\}(t)}\le C_{r(t)}.
+\sum_{\tau,b}c^{\mathrm{cycle}}_{\tau,r,t}y_{\tau,r,b,t}\le C_{r(t)}.
 $$
 
 ##### Reachability and full bins
@@ -405,9 +405,9 @@ $$
 1. the model is uncertain in a way that more data can fix (epistemic variance from the Bayesian posterior);
 2. the value at stake is large enough to justify interrupting the human. Estimated by the robot's own model, not by any oracle.
 
-Each intervention subtracts a fixed cost \(C^{\mathrm{human}}\) from the reward.
+Each intervention subtracts a fixed cost \(C^{\mathrm{intervention}}\) from the reward, and the value model is updated with the net reward.
 
-The posterior variance contracts as data accumulate. So the query rate anneals on its own: roughly 0.6 in the first 100 steps, zero after step ~300.
+The posterior variance contracts as data accumulate, so the query rate decays on its own: it averages ~0.6 over the first 50 steps, ~38 of the ~41 total interventions per 1500 decisions fall in the first 100 steps, and the rate reaches zero by step ~300.
 
 ____
 
@@ -416,7 +416,7 @@ ____
 The expected bin gain is:
 
 $$
-G_{\{\tau,b\}(t)}
+G_{\tau,b,t}
 =
 \sum_{M\in\mathcal{M}}
 P(M_\tau=M\mid z_{\tau(t)})
@@ -430,14 +430,14 @@ $$
 The expected one-action net value is:
 
 $$
-\widehat{g}_{\{\tau,r,b\}(t)}
+\widehat{g}_{\tau,r,b,t}
 =
- p^{\mathrm{pick}}_{\{\tau,r\}(t)}
- p^{\mathrm{place}}_{\{\tau,r,b\}(t)}
- G_{\{\tau,b\}(t)}
+ p^{\mathrm{pick}}_{\tau,r,t}
+ p^{\mathrm{place}}_{\tau,r,b,t}
+ G_{\tau,b,t}
 -
-C^{\mathrm{risk}}_{\{\tau,r,b\}(t)}
+C^{\mathrm{risk}}_{\tau,r,b,t}
 -
-C^{\mathrm{motion}}_{\{\tau,r\}(t)}.
+C^{\mathrm{motion}}_{\tau,r,t}.
 $$
 

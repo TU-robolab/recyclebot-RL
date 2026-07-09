@@ -1,7 +1,10 @@
 \begin{table}[t]
   \centering
+  \small
+  \setlength{\tabcolsep}{4pt}
   \caption{Skill $\times$ $\beta$ sweep for the operator-prior (KL) policy (mean $\pm$ 95\% CI over seeds). $\Delta$ value/min is the paired per-seed improvement over pure imitation of the same operator.}
   \label{tab:sweep}
+  \resizebox{\linewidth}{!}{%
   \begin{tabular}{llccc}
     \toprule
     Skill & $\beta$ & Final regret & $\Delta$ value/min & Interventions \\
@@ -26,5 +29,5 @@
      & 2.0 & $250 \pm 7$ & $+0.9 \pm 0.6$ & $52 \pm 7$ \\
      & 5.0 & $266 \pm 8$ & $+0.3 \pm 0.5$ & $52 \pm 6$ \\
     \bottomrule
-  \end{tabular}
+  \end{tabular}}
 \end{table}

@@ -253,8 +253,8 @@ Each tracked item \(\tau\) has a feature vector:
 | Time to exit | \(t^{\mathrm{exit}}_{\tau(t)}\) | time before item leaves reachable workspace |
 | Grasp candidates | \(\mathcal{G}_{\tau(t)}\) | candidate grasp set |
 | Best grasp score | \(G^*_{\tau(t)}\) | best candidate grasp quality |
-| Pick probability | \(p^{\mathrm{pick}}_{\{\tau,r\}(t)}\) | probability robot \(r\) picks item successfully |
-| Place probability | \(p^{\mathrm{place}}_{\{\tau,r,b\}(t)}\) | probability item lands in target bin \(b\) |
+| Pick probability | \(p^{\mathrm{pick}}_{\tau,r,t}\) | probability robot \(r\) picks item successfully |
+| Place probability | \(p^{\mathrm{place}}_{\tau,r,b,t}\) | probability item lands in target bin \(b\) |
 | Human prior | \(\mu_H(a(\tau,r,b)\mid S_t)\) | human-ghost preference signal |
 
 ### 6.2 Environment state
@@ -343,15 +343,15 @@ C^{\mathrm{contamination}}_{M,b}>0.
 The expected net value of one elementary action is:
 
 \[
-\widehat{g}_{\{\tau,r,b\}(t)}
+\widehat{g}_{\tau,r,b,t}
 =
- p^{\mathrm{pick}}_{\{\tau,r\}(t)}
- p^{\mathrm{place}}_{\{\tau,r,b\}(t)}
- G_{\{\tau,b\}(t)}
+ p^{\mathrm{pick}}_{\tau,r,t}
+ p^{\mathrm{place}}_{\tau,r,b,t}
+ G_{\tau,b,t}
 -
-C^{\mathrm{risk}}_{\{\tau,r,b\}(t)}
+C^{\mathrm{risk}}_{\tau,r,b,t}
 -
-C^{\mathrm{motion}}_{\{\tau,r\}(t)}.
+C^{\mathrm{motion}}_{\tau,r,t}.
 \]
 
 This is better than raw item value because it includes:
@@ -365,9 +365,9 @@ This is better than raw item value because it includes:
 A useful greedy display score is value density:
 
 \[
-A_{\{\tau,r,b\}(t)}
+A_{\tau,r,b,t}
 =
-\frac{\widehat{g}_{\{\tau,r,b\}(t)}}{c^{\mathrm{cycle}}_{\{\tau,r\}(t)}+\epsilon}.
+\frac{\widehat{g}_{\tau,r,b,t}}{c^{\mathrm{cycle}}_{\tau,r,t}+\epsilon}.
 \]
 
 This attractiveness score is only a heuristic. The LP planner keeps time in a capacity constraint instead of dividing the objective by cycle time.
@@ -479,7 +479,7 @@ The LP planner is used when more than one robot can act in the same decision win
 Decision variable:
 
 \[
-y_{\{\tau,r,b\}(t)}\in[0,1].
+y_{\tau,r,b,t}\in[0,1].
 \]
 
 A value near 1 means: assign item \(\tau\) to robot \(r\) and bin \(b\) in this planning window.
@@ -491,7 +491,7 @@ Objective:
 \sum_{\tau\in\mathcal{W}_t}
 \sum_{r\in\mathcal{R}_t}
 \sum_{b\in\mathcal{B}_t}
- y_{\{\tau,r,b\}(t)}\widehat{g}_{\{\tau,r,b\}(t)}.
+ y_{\tau,r,b,t}\widehat{g}_{\tau,r,b,t}.
 \]
 
 ### C1 — at most one assignment per item
@@ -499,7 +499,7 @@ Objective:
 \[
 \sum_{r\in\mathcal{R}_t}
 \sum_{b\in\mathcal{B}_t}
-y_{\{\tau,r,b\}(t)}
+y_{\tau,r,b,t}
 \leq 1
 \qquad\forall \tau\in\mathcal{W}_t.
 \]
@@ -509,7 +509,7 @@ y_{\{\tau,r,b\}(t)}
 \[
 \sum_{\tau\in\mathcal{W}_t}
 \sum_{b\in\mathcal{B}_t}
-c^{\mathrm{cycle}}_{\{\tau,r\}(t)}y_{\{\tau,r,b\}(t)}
+c^{\mathrm{cycle}}_{\tau,r,t}y_{\tau,r,b,t}
 \leq C_{r(t)}
 \qquad\forall r\in\mathcal{R}_t.
 \]
@@ -519,7 +519,7 @@ c^{\mathrm{cycle}}_{\{\tau,r\}(t)}y_{\{\tau,r,b\}(t)}
 The implementation removes illegal actions before the LP is solved:
 
 \[
-y_{\{\tau,r,b\}(t)}=0
+y_{\tau,r,b,t}=0
 \quad\text{if}\quad
 \tau\text{ is unreachable by }r
 \quad\text{or}\quad
@@ -572,7 +572,7 @@ Missed opportunity:
 R_t^{\mathrm{missed}}
 =
 \sum_{\tau\in\mathrm{valuable\ missed}}
-\max_{b\in\mathcal{B}_t}G_{\{\tau,b\}(t)}.
+\max_{b\in\mathcal{B}_t}G_{\tau,b,t}.
 \]
 
 Robot cost:
@@ -581,7 +581,7 @@ Robot cost:
 R_t^{\mathrm{robot}}
 =
 \sum_{a(\tau,r,b)\in A_t}
-\left(C^{\mathrm{motion}}_{\{\tau,r\}(t)}+C^{\mathrm{risk}}_{\{\tau,r,b\}(t)}\right).
+\left(C^{\mathrm{motion}}_{\tau,r,t}+C^{\mathrm{risk}}_{\tau,r,b,t}\right).
 \]
 
 Human cost:
@@ -619,13 +619,15 @@ Trigger:
 q_{r,t}
 =
 \mathbf{1}\left[
-\mathrm{Var}_{\mathrm{epi}}[\widehat{Q}(S_{r(t)},\cdot)]>\eta
+\max_{a\in\mathbb{A}_t}\mathrm{Var}_{\mathrm{epi}}[\widehat{Q}(S_{r(t)},a)]>\eta_u
 \ \land\
-\Delta V_{r(t)}^{\mathrm{human}}>C^{\mathrm{human}}
+\max_{a\in\mathbb{A}_t}\bar{Q}(S_{r(t)},a)>\eta_v
 \right].
 \]
 
-Use epistemic uncertainty, such as ensemble disagreement. Raw entropy is not enough: some ambiguity is sensor-limited and will not be solved by asking a human.
+Both quantities are the robot's own estimates from the Bayesian posterior: the epistemic variance and the posterior-mean value. The value threshold \(\eta_v\) keeps interruptions to decisions that matter. Each intervention subtracts a fixed cost \(C^{\mathrm{intervention}}\) from the reward, and the value model is updated with this net reward.
+
+Use epistemic uncertainty, such as posterior variance or ensemble disagreement. Raw entropy is not enough: some ambiguity is sensor-limited and will not be solved by asking a human.
 
 ---
 
@@ -660,6 +662,8 @@ Self-normalized IPS estimate for a new policy \(\pi_{\mathrm{new}}\):
 \]
 
 Without \(\mu_t(a_t\mid S_t)\), reliable off-policy evaluation is not possible after the fact.
+
+\(\mu_t\) is the probability under the *executed* decision rule: the sampling probability of the exploration-mixed policy on autonomous steps, and \(\mu_t(a_t\mid S_t)=1\) on intervention steps, where the human override is deterministic. Because intervention steps are deterministic, actions other than the override have zero behavior probability there: SNIPS is reliable for target policies close to the logged behavior and degrades for distant ones (low effective sample size), which the random-policy experiment shows directly.
 
 ---
 

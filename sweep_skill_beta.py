@@ -125,10 +125,13 @@ def make_figure(df: pd.DataFrame, fig_dir: Path, table_dir: Path) -> None:
     lines = [
         "\\begin{table}[t]",
         "  \\centering",
+        "  \\small",
+        "  \\setlength{\\tabcolsep}{4pt}",
         "  \\caption{Skill $\\times$ $\\beta$ sweep for the operator-prior (KL) policy "
         "(mean $\\pm$ 95\\% CI over seeds). $\\Delta$ value/min is the paired per-seed "
         "improvement over pure imitation of the same operator.}",
         "  \\label{tab:sweep}",
+        "  \\resizebox{\\linewidth}{!}{%",
         "  \\begin{tabular}{llccc}",
         "    \\toprule",
         "    Skill & $\\beta$ & Final regret & $\\Delta$ value/min & Interventions \\\\",
@@ -147,7 +150,7 @@ def make_figure(df: pd.DataFrame, fig_dir: Path, table_dir: Path) -> None:
             )
         if i < len(SKILLS) - 1:
             lines.append("    \\addlinespace")
-    lines += ["    \\bottomrule", "  \\end{tabular}", "\\end{table}", ""]
+    lines += ["    \\bottomrule", "  \\end{tabular}}", "\\end{table}", ""]
     table_dir.mkdir(parents=True, exist_ok=True)
     (table_dir / "sweep_summary.tex").write_text("\n".join(lines), encoding="utf-8")
 

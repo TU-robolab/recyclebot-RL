@@ -1,7 +1,10 @@
 \begin{table}[t]
   \centering
+  \small
+  \setlength{\tabcolsep}{4pt}
   \caption{Rolling LP assignment vs.\ greedy value-density planning (mean $\pm$ 95\% CI over seeds).}
   \label{tab:lp}
+  \resizebox{\linewidth}{!}{%
   \begin{tabular}{lccc}
     \toprule
     Planner & Value/window & Correct-bin & Utilization \\
@@ -10,5 +13,5 @@
     Greedy density & $1.23 \pm 0.03$ & $0.95 \pm 0.01$ & $0.55 \pm 0.01$ \\
     Paired difference (LP $-$ greedy) & $-0.01 \pm 0.01$ & -- & -- \\
     \bottomrule
-  \end{tabular}
+  \end{tabular}}
 \end{table}

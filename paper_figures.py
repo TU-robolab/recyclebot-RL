@@ -168,8 +168,11 @@ def write_booktabs(path: Path, caption: str, label: str, header: Sequence[str], 
     lines = [
         "\\begin{table}[t]",
         "  \\centering",
+        "  \\small",
+        "  \\setlength{\\tabcolsep}{4pt}",
         f"  \\caption{{{caption}}}",
         f"  \\label{{{label}}}",
+        "  \\resizebox{\\linewidth}{!}{%",
         f"  \\begin{{tabular}}{{{align}}}",
         "    \\toprule",
         "    " + " & ".join(header) + " \\\\",
@@ -177,7 +180,7 @@ def write_booktabs(path: Path, caption: str, label: str, header: Sequence[str], 
     ]
     for row in rows:
         lines.append("    " + " & ".join(row) + " \\\\")
-    lines += ["    \\bottomrule", "  \\end{tabular}", "\\end{table}", ""]
+    lines += ["    \\bottomrule", "  \\end{tabular}}", "\\end{table}", ""]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines), encoding="utf-8")
 
@@ -335,13 +338,14 @@ def make_bandit_figures(df: pd.DataFrame, fig_dir: Path, table_dir: Path) -> Non
         mv, hv = mean_ci(dv)
         mr, hr = mean_ci(dr)
         rows.append([
-            f"\\quad {policy_label(a)} $-$ {policy_label(b)} (paired)",
+            f"\\quad $\\Delta$ vs.\\ {policy_label(b)} (paired)",
             fmt_pm(mv, hv), "--", fmt_pm(mr, hr, 1), "--", "--",
         ])
     write_booktabs(
         table_dir / "bandit_summary.tex",
-        caption=("Contextual-bandit results (mean $\\pm$ 95\\% CI over seeds; paired rows "
-                 "use per-seed differences under common random numbers). "
+        caption=("Contextual-bandit results (mean $\\pm$ 95\\% CI over seeds). "
+                 "$\\Delta$ rows are operator-prior (KL) minus the listed policy, "
+                 "paired per seed under common random numbers. "
                  "Convergence step $t_{\\mathrm{conv}}$ is the first step at which the "
                  f"rolling reward (window {ROLL}) reaches 95\\% of its final plateau."),
         label="tab:bandit",
